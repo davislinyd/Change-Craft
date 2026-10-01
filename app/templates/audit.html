@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>稽核紀錄</h1>
+<p class="muted">Append-only；資料庫層禁止修改與刪除。顯示最近 500 筆。</p>
+<form method="get" action="/audit" class="row" style="margin-bottom: 12px;">
+  <input name="action" value="{{ action }}" placeholder="動作前綴，例：change. / user. / module.">
+  <button>篩選</button>
+</form>
+<section>
+  <div class="table-wrap">
+  <table>
+    <tr><th>時間</th><th>使用者</th><th>來源</th><th>動作</th><th>對象</th><th>內容</th></tr>
+    {% for e in events %}
+    <tr>
+      <td>{{ e.created_at|dt }}</td>
+      <td>{{ e.actor.username if e.actor else '系統' }}</td>
+      <td>{{ e.source }}</td>
+      <td><code>{{ e.action }}</code></td>
+      <td>{% if e.change_id %}<a href="/changes/{{ e.change_id }}">變更 #{{ e.change_id }}</a>{% else %}{{ e.entity_type or '' }} {{ e.entity_id or '' }}{% endif %}</td>
+      <td>{% include "_event_detail.html" %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+</section>
+{% endblock %}

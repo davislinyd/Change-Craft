@@ -1,0 +1,18 @@
+<div class="table-wrap">
+<table>
+  <tr><th>單號</th><th>標題</th><th>狀態</th><th>風險</th><th>時段</th><th>設備</th><th>申請人</th></tr>
+  {% for c in rows %}
+  <tr>
+    <td><a href="/changes/{{ c.id }}">{{ c.number }}</a></td>
+    <td>{{ c.title }}</td>
+    <td><span class="badge b-{{ c.status }}">{{ L[c.status] }}</span>{% if c.result %} <span class="badge b-{{ c.result }}">{{ L[c.result] }}</span>{% endif %}</td>
+    <td><span class="badge b-{{ c.risk }}">{{ L[c.risk] }}</span></td>
+    <td>{{ c.window_start|dt }}{% if c.window_end %} – {{ c.window_end|dt }}{% endif %}</td>
+    <td>{% for t in c.targets %}{{ t.hostname }}{% if not loop.last %}, {% endif %}{% endfor %}</td>
+    <td>{{ c.requester.display_name }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="7" class="muted">沒有資料</td></tr>
+  {% endfor %}
+</table>
+</div>

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ tpl.code }} {{ tpl.name }} {% if not tpl.is_active %}<span class="badge">停用</span>{% endif %}</h1>
+{% if tpl.description %}<p>{{ tpl.description }}</p>{% endif %}
+{% set editor = can(user, "module.edit") %}
+<section>
+  <table>
+    <tr><th>#</th><th>模組</th><th>適用</th><th>省略規則</th><th>條件說明</th>{% if editor %}<th></th>{% endif %}</tr>
+    {% for i in tpl.items %}
+    <tr>
+      <td>{{ i.seq }}</td>
+      <td><a href="/modules/{{ i.module.id }}">{{ i.module.code }}</a> {{ i.module.title }}
+        {% if i.module.status != 'STANDARD' %}<span class="badge b-{{ i.module.status }}">{{ L[i.module.status] }}</span>{% endif %}</td>
+      <td>{{ L[i.module.device_type] if i.module.device_type else '全部' }}</td>
+      <td><span class="badge b-{{ i.skip_policy }}">{{ L[i.skip_policy] }}</span></td>
+      <td>{{ i.condition_note }}</td>
+      {% if editor %}<td><form class="inline" method="post" action="/change-templates/{{ tpl.id }}/items/{{ i.id }}/delete">{{ csrf_input }}<button class="small danger">移除</button></form></td>{% endif %}
+    </tr>
+    {% else %}<tr><td colspan="6" class="muted">尚無步驟</td></tr>{% endfor %}
+  </table>
+</section>
+{% if editor %}
+<section>
+  <h2>加入步驟</h2>
+  <form method="post" action="/change-templates/{{ tpl.id }}/items" class="row">
+    {{ csrf_input }}
+    <select name="module_id" required><option value="">選擇標準模組…</option>
+      {% for m in modules %}<option value="{{ m.id }}">{{ m.code }} {{ m.title }}</option>{% endfor %}
+    </select>
+    <select name="skip_policy">{% for p in skip_policies %}<option value="{{ p }}">{{ L[p] }}</option>{% endfor %}</select>
+    <input name="condition_note" placeholder="條件說明（條件式步驟建議填寫）" size="30">
+    <button>加入</button>
+  </form>
+  <form method="post" action="/change-templates/{{ tpl.id }}/active" style="margin-top: 12px;">
+    {{ csrf_input }}
+    {% if tpl.is_active %}<button class="danger">停用範本</button>{% else %}<input type="hidden" name="active" value="true"><button>啟用範本</button>{% endif %}
+  </form>
+</section>
+{% endif %}
+{% endblock %}

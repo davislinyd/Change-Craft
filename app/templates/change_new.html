@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>建立變更</h1>
+<section>
+  <form method="post" action="/changes">
+    {{ csrf_input }}
+    {% with cr=None %}{% include "_change_fields.html" %}{% endwith %}
+    <label>從變更範本帶入步驟（可之後調整）
+      <select name="template_id"><option value="">不使用範本</option>
+        {% for t in templates %}<option value="{{ t.id }}">{{ t.code }} {{ t.name }}（{{ t.items|length }} 步）</option>{% endfor %}
+      </select>
+    </label>
+    <p><button>建立草稿</button></p>
+  </form>
+</section>
+{% endblock %}

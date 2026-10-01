@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<section style="max-width: 360px; margin: 60px auto;">
+  <h1>登入</h1>
+  <form method="post" action="/login">
+    {{ csrf_input }}
+    <label>帳號 <input name="username" required autofocus autocomplete="username"></label>
+    <label>密碼 <input name="password" type="password" required autocomplete="current-password"></label>
+    <p><button>登入</button></p>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,4 @@
+<label>說明<textarea name="instruction">{{ rev.instruction if rev else '' }}</textarea></label>
+<label>指令（可用 {{ '{{ 變數 }}' }} 標記需替換的值）<textarea name="command">{{ rev.command if rev else '' }}</textarea></label>
+<label>驗證<textarea name="verification">{{ rev.verification if rev else '' }}</textarea></label>
+<label>回復<textarea name="rollback">{{ rev.rollback if rev else '' }}</textarea></label>

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>步驟模組</h1>
+<p class="muted">每個模組是一塊可重複使用的步驟積木；修改會產生新版本，已用過的變更永遠保留當時版本。</p>
+<form method="get" action="/modules" class="row" style="margin-bottom: 12px;">
+  <select name="status"><option value="">全部狀態</option>{% for s in statuses %}<option value="{{ s }}" {% if s == status %}selected{% endif %}>{{ L[s] }}</option>{% endfor %}</select>
+  <button>篩選</button>
+</form>
+<section>
+  <div class="table-wrap">
+  <table>
+    <tr><th>代碼</th><th>名稱</th><th>適用</th><th>狀態</th><th>版本</th><th>母模組</th></tr>
+    {% for m in modules %}
+    <tr>
+      <td><a href="/modules/{{ m.id }}">{{ m.code }}</a></td><td>{{ m.title }}</td>
+      <td>{{ L[m.device_type] if m.device_type else '全部' }}</td>
+      <td><span class="badge b-{{ m.status }}">{{ L[m.status] }}</span></td>
+      <td>r{{ m.current_revision }}</td>
+      <td>{% if m.parent %}<a href="/modules/{{ m.parent.id }}">{{ m.parent.code }}</a>{% endif %}</td>
+    </tr>
+    {% else %}<tr><td colspan="6" class="muted">沒有資料</td></tr>{% endfor %}
+  </table>
+  </div>
+</section>
+{% if can(user, "module.edit") %}
+<section>
+  <h2>新增模組（候選，需模組核准者核准後才能使用）</h2>
+  <form method="post" action="/modules">
+    {{ csrf_input }}
+    <div class="grid">
+      <label>代碼 *<input name="code" required placeholder="A01"></label>
+      <label>名稱 *<input name="title" required></label>
+      <label>適用設備<select name="device_type"><option value="">全部</option>{% for t in device_types %}<option value="{{ t }}">{{ L[t] }}</option>{% endfor %}</select></label>
+      <label>說明備註<input name="note"></label>
+    </div>
+    {% with rev=None %}{% include "_content_fields.html" %}{% endwith %}
+    <p><button>新增</button></p>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

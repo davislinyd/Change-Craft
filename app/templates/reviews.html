@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>模組審核</h1>
+<p class="muted">已結案變更中的現場調整與自訂步驟。決定是否保留為一次性調整、晉升為（變形）標準模組，或併入母模組新版本。</p>
+{% for s, diff in items %}
+<section>
+  <h2><a href="/changes/{{ s.change.id }}#step-{{ s.id }}">{{ s.change.number }}</a> · {{ s.code }} {{ s.title }}</h2>
+  <p><strong>調整原因：</strong>{{ s.modification_note }}</p>
+  {% if diff %}<pre>{{ diff }}</pre>{% else %}
+    {% if s.instruction %}<h3>說明</h3><pre>{{ s.instruction }}</pre>{% endif %}
+    {% if s.command %}<h3>指令</h3><pre>{{ s.command }}</pre>{% endif %}
+    {% if s.verification %}<h3>驗證</h3><pre>{{ s.verification }}</pre>{% endif %}
+    {% if s.rollback %}<h3>回復</h3><pre>{{ s.rollback }}</pre>{% endif %}
+  {% endif %}
+  <form method="post" action="/reviews/{{ s.id }}" class="row">
+    {{ csrf_input }}
+    <select name="decision">
+      {% for d in decisions %}{% if d != 'MERGE_PARENT' or s.module_id %}<option value="{{ d }}">{{ L[d] }}</option>{% endif %}{% endfor %}
+    </select>
+    {% if s.module_id %}
+    <label>變形模組名稱（晉升時）<input name="title" value="{{ s.title }}"></label>
+    {% else %}
+    <label>新模組代碼（晉升時必填）<input name="code"></label>
+    <label>適用設備<select name="device_type"><option value="">全部</option>{% for t in device_types %}<option value="{{ t }}">{{ L[t] }}</option>{% endfor %}</select></label>
+    {% endif %}
+    <button>送出</button>
+  </form>
+</section>
+{% else %}
+<section class="muted">目前沒有待審核的調整。</section>
+{% endfor %}
+{% endblock %}

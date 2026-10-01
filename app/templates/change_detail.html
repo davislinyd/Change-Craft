@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+{% block title %}{{ cr.number }} {{ cr.title }}{% endblock %}
+{% block content %}
+<h1>{{ cr.number }} {{ cr.title }} <span class="badge b-{{ cr.status }}">{{ L[cr.status] }}</span></h1>
+
+{% if actions %}
+<section>
+  <form method="post" action="/changes/{{ cr.id }}/action" class="row">
+    {{ csrf_input }}
+    <input name="comment" placeholder="說明（退回、取消必填）" size="40">
+    {% for a in actions %}
+    <button name="action" value="{{ a }}" class="{{ 'danger' if a in ('reject', 'cancel') else '' }}">{{ L[a] }}</button>
+    {% endfor %}
+  </form>
+  {% if cr.status == 'IN_PROGRESS' %}<p class="muted">所有步驟都更新狀態後才能按「執行完畢」。</p>{% endif %}
+</section>
+{% endif %}
+{% if cr.status == 'EXECUTED' %}<div class="flash">執行完畢，請申請人在下方「變更紀錄」回填結果後結案。</div>{% endif %}
+
+<section id="overview">
+  <h2>概要</h2>
+  <dl class="kv">
+    <dt>目的</dt><dd>{{ cr.purpose }}</dd>
+    <dt>原因</dt><dd>{{ cr.reason }}</dd>
+    <dt>變更項目</dt><dd>{{ cr.change_items }}</dd>
+    <dt>風險</dt><dd><span class="badge b-{{ cr.risk }}">{{ L[cr.risk] }}</span></dd>
+    <dt>時段</dt><dd>{{ cr.window_start|dt }} – {{ cr.window_end|dt }}</dd>
+    <dt>申請人</dt><dd>{{ cr.requester.display_name }}</dd>
+    {% if cr.template %}<dt>來源範本</dt><dd><a href="/change-templates/{{ cr.template.id }}">{{ cr.template.code }} {{ cr.template.name }}</a></dd>{% endif %}
+    {% if cr.approved_by %}<dt>核准</dt><dd>{{ cr.approved_by.display_name }}，{{ cr.approved_at|dt }}</dd>{% endif %}
+    {% if cr.started_at %}<dt>實際執行</dt><dd>{{ cr.started_at|dt }} – {{ cr.finished_at|dt }}</dd>{% endif %}
+  </dl>
+  {% if editable %}
+  <details><summary>編輯概要</summary>
+    <form method="post" action="/changes/{{ cr.id }}/edit">
+      {{ csrf_input }}
+      {% include "_change_fields.html" %}
+      <p><button>儲存</button></p>
+    </form>
+  </details>
+  {% endif %}
+</section>
+
+<section id="targets">
+  <h2>設備（{{ cr.targets|length }}）</h2>
+  <p class="muted">各設備不知道彼此；設備之間的關聯只存在於此變更。以下為加入變更當下的快照。</p>
+  <div class="table-wrap">
+  <table>
+    <tr><th>主機名稱</th><th>IP</th><th>類型</th><th>環境</th><th>步驟數</th>{% if editable %}<th></th>{% endif %}</tr>
+    {% for t in cr.targets %}
+    <tr>
+      <td><a href="/devices/{{ t.device_id }}">{{ t.hostname }}</a></td>
+      <td>{{ t.ip or '' }}</td><td>{{ L[t.device_type] }}</td><td>{{ t.environment }}</td>
+      <td>{{ t.executions|length }}</td>
+      {% if editable %}<td><form class="inline" method="post" action="/changes/{{ cr.id }}/targets/{{ t.id }}/delete">{{ csrf_input }}<button class="small danger" hx-confirm="移除 {{ t.hostname }}？">移除</button></form></td>{% endif %}
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  {% if editable %}
+  <form method="post" action="/changes/{{ cr.id }}/targets" class="row" style="margin-top: 8px;">
+    {{ csrf_input }}
+    <select name="device_id" required>
+      <option value="">選擇設備…</option>
+      {% for d in devices %}<option value="{{ d.id }}">{{ d.hostname }}（{{ d.ip or '-' }}，{{ L[d.device_type] }}，{{ d.environment }}）</option>{% endfor %}
+    </select>
+    <button>加入設備</button>
+  </form>
+  {% endif %}
+</section>
+
+<section id="plan">
+  <h2>變更計畫與執行</h2>
+  <p class="muted">每格代表「此步驟在此設備上」的掛勾與執行結果；— 表示不適用。{% if editable %}點格子切換是否掛勾。{% endif %}</p>
+  <div class="table-wrap">
+  <table class="matrix">
+    <tr>
+      <th>#</th><th>代碼</th><th>步驟</th><th>省略規則</th>
+      {% for t in cr.targets %}<th>{{ t.hostname }}</th>{% endfor %}
+    </tr>
+    {% for s in cr.steps %}
+    <tr id="step-{{ s.id }}">
+      <td>{{ s.seq }}</td>
+      <td>
+        {% if s.module_id %}<a href="/modules/{{ s.module_id }}">{{ s.code }}</a> <span class="muted">r{{ s.module_revision }}</span>{% else %}{{ s.code }}{% endif %}
+        {% if s.is_modified %}<br><span class="badge b-modified">現場調整</span>{% endif %}
+        {% if s.review_decision %}<br><span class="badge">{{ L[s.review_decision] }}{% if s.result_module %} → {{ s.result_module.code }}{% endif %}</span>{% endif %}
+      </td>
+      <td>
+        <strong>{{ s.title }}</strong>
+        <details><summary>內容</summary>
+          {% if s.instruction %}<h3>說明</h3><pre>{{ s.instruction }}</pre>{% endif %}
+          {% if s.command %}<h3>指令</h3><pre>{{ s.command }}</pre>{% endif %}
+          {% if s.verification %}<h3>驗證</h3><pre>{{ s.verification }}</pre>{% endif %}
+          {% if s.rollback %}<h3>回復</h3><pre>{{ s.rollback }}</pre>{% endif %}
+          {% if s.modification_note %}<h3>調整原因</h3><pre>{{ s.modification_note }}</pre>{% endif %}
+        </details>
+        {% if editable %}
+        <details><summary>編輯步驟</summary>
+          <form method="post" action="/changes/{{ cr.id }}/steps/{{ s.id }}">
+            {{ csrf_input }}
+            <div class="row">
+              <label>順序<input type="number" name="seq" value="{{ s.seq }}" style="width: 70px;"></label>
+              <label>省略規則<select name="skip_policy">{% for p in skip_policies %}<option value="{{ p }}" {% if p == s.skip_policy %}selected{% endif %}>{{ L[p] }}</option>{% endfor %}</select></label>
+              <label>適用條件說明<input name="condition_note" value="{{ s.condition_note }}"></label>
+            </div>
+            <label>說明<textarea name="instruction">{{ s.instruction }}</textarea></label>
+            <label>指令<textarea name="command">{{ s.command }}</textarea></label>
+            <label>驗證<textarea name="verification">{{ s.verification }}</textarea></label>
+            <label>回復<textarea name="rollback">{{ s.rollback }}</textarea></label>
+            <label>調整原因（內容與標準模組不同時必填）<input name="modification_note" value="{{ s.modification_note }}"></label>
+            <p><button class="small">儲存步驟</button></p>
+          </form>
+          <form method="post" action="/changes/{{ cr.id }}/steps/{{ s.id }}/delete">{{ csrf_input }}<button class="small danger" hx-confirm="刪除步驟 {{ s.code }}？">刪除步驟</button></form>
+        </details>
+        {% endif %}
+      </td>
+      <td><span class="badge b-{{ s.skip_policy }}">{{ L[s.skip_policy] }}</span>{% if s.condition_note %}<br><span class="muted">{{ s.condition_note }}</span>{% endif %}</td>
+      {% for t in cr.targets %}
+      {% set e = matrix[s.id].get(t.id) %}
+      {% if editable %}
+      <td class="cell">
+        <form class="inline" method="post" action="/changes/{{ cr.id }}/steps/{{ s.id }}/targets/{{ t.id }}">{{ csrf_input }}
+          <button class="small {{ '' if e else 'secondary' }}">{{ '✓ 掛勾' if e else '—' }}</button>
+        </form>
+      </td>
+      {% elif e %}
+      <td class="cell">
+        <span class="badge b-{{ e.status }}">{{ L[e.status] }}</span>
+        {% if e.executed_by %}<br><span class="muted">{{ e.executed_by.display_name }} {{ e.executed_at|dt }}</span>{% endif %}
+        {% if e.note %}<br>{{ e.note }}{% endif %}
+        {% if e.output %}<details><summary>輸出</summary><pre>{{ e.output }}</pre></details>{% endif %}
+        {% if cr.status == 'IN_PROGRESS' and can(user, 'change.execute', t) %}
+        <details><summary>更新</summary>
+          <form method="post" action="/changes/{{ cr.id }}/executions/{{ e.id }}">
+            {{ csrf_input }}
+            <select name="status">{% for st in step_statuses %}{% if st != 'SKIPPED' or s.skip_policy != 'REQUIRED' %}<option value="{{ st }}" {% if st == e.status %}selected{% endif %}>{{ L[st] }}</option>{% endif %}{% endfor %}</select>
+            <input name="note" value="{{ e.note }}" placeholder="備註／省略原因">
+            <textarea name="output" placeholder="執行輸出">{{ e.output }}</textarea>
+            <button class="small">更新</button>
+          </form>
+        </details>
+        {% endif %}
+      </td>
+      {% else %}
+      <td class="na">—</td>
+      {% endif %}
+      {% endfor %}
+    </tr>
+    {% else %}
+    <tr><td colspan="{{ 4 + cr.targets|length }}" class="muted">尚無步驟</td></tr>
+    {% endfor %}
+  </table>
+  </div>
+
+  {% if editable %}
+  <h3>加入標準模組</h3>
+  <form method="post" action="/changes/{{ cr.id }}/steps" class="row">
+    {{ csrf_input }}
+    <select name="module_id" required>
+      <option value="">選擇模組…</option>
+      {% for m in modules %}<option value="{{ m.id }}">{{ m.code }} {{ m.title }}{% if m.device_type %}（{{ L[m.device_type] }}）{% endif %}</option>{% endfor %}
+    </select>
+    <select name="skip_policy">{% for p in skip_policies %}<option value="{{ p }}">{{ L[p] }}</option>{% endfor %}</select>
+    <input name="condition_note" placeholder="適用條件說明">
+    <button>加入</button>
+  </form>
+  <details style="margin-top: 8px;"><summary>加入自訂步驟（結案後由模組核准者決定是否晉升為標準模組）</summary>
+    <form method="post" action="/changes/{{ cr.id }}/steps/custom">
+      {{ csrf_input }}
+      <div class="row">
+        <label>步驟名稱<input name="title" required></label>
+        <label>省略規則<select name="skip_policy">{% for p in skip_policies %}<option value="{{ p }}">{{ L[p] }}</option>{% endfor %}</select></label>
+        <label>適用條件說明<input name="condition_note"></label>
+        <label>原因 *<input name="modification_note" required></label>
+      </div>
+      <label>說明<textarea name="instruction"></textarea></label>
+      <label>指令<textarea name="command"></textarea></label>
+      <label>驗證<textarea name="verification"></textarea></label>
+      <label>回復<textarea name="rollback"></textarea></label>
+      <p><button>加入自訂步驟</button></p>
+    </form>
+  </details>
+  {% endif %}
+</section>
+
+<section id="record">
+  <h2>變更紀錄</h2>
+  {% if cr.status == 'CLOSED' %}
+  <dl class="kv">
+    <dt>結果</dt><dd><span class="badge b-{{ cr.result }}">{{ L[cr.result] }}</span></dd>
+    <dt>驗證結果</dt><dd>{{ cr.verification_result }}</dd>
+    <dt>影響</dt><dd>{{ cr.result_impact }}</dd>
+    <dt>非預期問題</dt><dd>{{ cr.result_issues }}</dd>
+    <dt>使用回復程序</dt><dd>{{ '是' if cr.rollback_used else '否' }}</dd>
+    <dt>備註</dt><dd>{{ cr.result_notes }}</dd>
+    <dt>結案</dt><dd>{{ cr.closed_by.display_name }}，{{ cr.closed_at|dt }}</dd>
+  </dl>
+  {% elif cr.status == 'EXECUTED' and cr.requester_id == user.id %}
+  <form method="post" action="/changes/{{ cr.id }}/record">
+    {{ csrf_input }}
+    <div class="row">
+      <label>結果 *<select name="result" required><option value="">請選擇</option>{% for r in results %}<option value="{{ r }}">{{ L[r] }}</option>{% endfor %}</select></label>
+      <label class="check"><input type="checkbox" name="rollback_used" value="true"> 有使用回復程序</label>
+    </div>
+    <label>驗證結果 *<textarea name="verification_result" required></textarea></label>
+    <label>影響<textarea name="impact"></textarea></label>
+    <label>非預期問題<textarea name="issues"></textarea></label>
+    <label>備註<textarea name="notes"></textarea></label>
+    <p><button>回填並結案</button></p>
+  </form>
+  {% else %}
+  <p class="muted">執行完畢後由申請人回填。</p>
+  {% endif %}
+</section>
+
+<section id="timeline">
+  <h2>操作日誌</h2>
+  <ul class="timeline">
+    {% for e in events %}
+    <li>
+      <span class="muted">{{ e.created_at|dt }}</span>
+      {{ e.actor.display_name if e.actor else '系統' }}
+      {% if e.source != 'web' %}<span class="badge">{{ e.source }}</span>{% endif %}
+      <code>{{ e.action }}</code>
+      {% include "_event_detail.html" %}
+    </li>
+    {% endfor %}
+  </ul>
+  <form method="post" action="/changes/{{ cr.id }}/comment" class="row">
+    {{ csrf_input }}
+    <input name="text" placeholder="留言" size="60" required>
+    <button>留言</button>
+  </form>
+</section>
+{% endblock %}

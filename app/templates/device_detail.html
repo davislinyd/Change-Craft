@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ d.hostname }} {% if not d.is_active %}<span class="badge">停用</span>{% endif %}</h1>
+<section>
+  <dl class="kv">
+    <dt>類型</dt><dd>{{ L[d.device_type] }}</dd>
+    <dt>管理 IP</dt><dd>{{ d.ip or '' }}</dd>
+    <dt>環境</dt><dd>{{ d.environment }}</dd>
+    <dt>廠牌／型號</dt><dd>{{ d.vendor }} {{ d.model }}</dd>
+    <dt>負責團隊</dt><dd>{{ d.owner_team }}</dd>
+    <dt>備註</dt><dd>{{ d.notes }}</dd>
+  </dl>
+  {% if can(user, "device.manage") %}
+  <details><summary>編輯</summary>
+    <form method="post" action="/devices/{{ d.id }}">
+      {{ csrf_input }}
+      {% include "_device_fields.html" %}
+      <label class="check"><input type="checkbox" name="is_active" value="true" {% if d.is_active %}checked{% endif %}> 啟用</label>
+      <p><button>儲存</button></p>
+    </form>
+  </details>
+  {% endif %}
+</section>
+<section>
+  <h2>變更歷史</h2>
+  <p class="muted">設備本身不記錄變更；以下經由主變更反查。點單號可看同一變更涉及的其他設備。</p>
+  <div class="table-wrap">
+  <table>
+    <tr><th>單號</th><th>標題</th><th>狀態</th><th>時段</th><th>當時 IP</th><th>步驟</th></tr>
+    {% for t in history %}
+    <tr>
+      <td><a href="/changes/{{ t.change.id }}">{{ t.change.number }}</a></td>
+      <td>{{ t.change.title }}</td>
+      <td><span class="badge b-{{ t.change.status }}">{{ L[t.change.status] }}</span></td>
+      <td>{{ t.change.window_start|dt }}</td>
+      <td>{{ t.ip or '' }}</td>
+      <td>{% for e in t.executions %}{{ e.plan_step.code }}:<span class="badge b-{{ e.status }}">{{ L[e.status] }}</span> {% endfor %}</td>
+    </tr>
+    {% else %}<tr><td colspan="6" class="muted">沒有變更紀錄</td></tr>{% endfor %}
+  </table>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row" style="justify-content: space-between; margin-bottom: 12px;">
+  <form method="get" action="/changes" class="row">
+    <input name="q" placeholder="單號 / 標題 / 目的 / 項目" size="30">
+    <input name="hostname" placeholder="設備名稱">
+    <input name="ip" placeholder="IP 或網段">
+    <button>搜尋</button>
+  </form>
+  {% if can(user, "change.create") %}<a href="/changes/new"><button>建立變更</button></a>{% endif %}
+</div>
+{% if reviews %}<div class="flash">有 {{ reviews }} 個現場調整待審核，<a href="/reviews">前往模組審核</a>。</div>{% endif %}
+<section><h2>待核准</h2>{% with rows=to_approve %}{% include "_change_table.html" %}{% endwith %}</section>
+<section><h2>已核准 / 執行中</h2>{% with rows=active %}{% include "_change_table.html" %}{% endwith %}</section>
+<section><h2>我的變更（未結案）</h2>{% with rows=mine %}{% include "_change_table.html" %}{% endwith %}</section>
+{% endblock %}

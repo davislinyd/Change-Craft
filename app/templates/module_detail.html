@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ m.code }} {{ m.title }} <span class="badge b-{{ m.status }}">{{ L[m.status] }}</span></h1>
+<section>
+  <dl class="kv">
+    <dt>適用設備</dt><dd>{{ L[m.device_type] if m.device_type else '全部' }}</dd>
+    <dt>目前版本</dt><dd>r{{ m.current_revision }}</dd>
+    {% if m.parent %}<dt>母模組</dt><dd><a href="/modules/{{ m.parent.id }}">{{ m.parent.code }} {{ m.parent.title }}</a></dd>{% endif %}
+    <dt>變形模組</dt><dd>{% for v in variants %}<a href="/modules/{{ v.id }}">{{ v.code }}</a> {% else %}無{% endfor %}</dd>
+    <dt>被變更使用次數</dt><dd>{{ usage }}</dd>
+  </dl>
+  {% if can(user, "module.approve") %}
+  <form method="post" action="/modules/{{ m.id }}/status" class="row">
+    {{ csrf_input }}
+    {% if m.status != 'STANDARD' %}<button name="status" value="STANDARD">核准為標準模組</button>{% endif %}
+    {% if m.status != 'DEPRECATED' %}<button name="status" value="DEPRECATED" class="danger">停用</button>{% endif %}
+  </form>
+  {% endif %}
+</section>
+{% if m.status != 'DEPRECATED' and can(user, 'module.approve' if m.status == 'STANDARD' else 'module.edit') %}
+<section>
+  <h2>修訂（產生 r{{ m.current_revision + 1 }}）</h2>
+  <form method="post" action="/modules/{{ m.id }}/revise">
+    {{ csrf_input }}
+    {% with rev=m.current %}{% include "_content_fields.html" %}{% endwith %}
+    <label>修訂說明 *<input name="note" required></label>
+    <p><button>儲存新版本</button></p>
+  </form>
+</section>
+{% endif %}
+<section>
+  <h2>版本歷史</h2>
+  {% for r in revisions %}
+  <details {% if loop.first %}open{% endif %}>
+    <summary>r{{ r.revision }} — {{ r.created_at|dt }} {{ r.created_by.display_name if r.created_by else '' }} {{ r.note }}</summary>
+    {% if r.instruction %}<h3>說明</h3><pre>{{ r.instruction }}</pre>{% endif %}
+    {% if r.command %}<h3>指令</h3><pre>{{ r.command }}</pre>{% endif %}
+    {% if r.verification %}<h3>驗證</h3><pre>{{ r.verification }}</pre>{% endif %}
+    {% if r.rollback %}<h3>回復</h3><pre>{{ r.rollback }}</pre>{% endif %}
+  </details>
+  {% endfor %}
+</section>
+{% endblock %}
