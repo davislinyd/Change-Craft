@@ -1,0 +1,2 @@
+{% if e.detail.from_status %}<span class="badge b-{{ e.detail.from_status }}">{{ L[e.detail.from_status] }}</span> → <span class="badge b-{{ e.detail.to_status }}">{{ L[e.detail.to_status] }}</span>{% endif %}
+{% for k, v in e.detail.items() if k not in ('from_status', 'to_status') and v not in (None, '') %}<span class="muted">{{ k }}=</span>{{ v }} {% endfor %}

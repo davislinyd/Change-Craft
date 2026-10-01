@@ -1,0 +1,10 @@
+<div class="grid">
+  <label>主機名稱 *<input name="hostname" required value="{{ d.hostname if d else '' }}"></label>
+  <label>類型 *<select name="device_type">{% for t in device_types %}<option value="{{ t }}" {% if d and d.device_type == t %}selected{% endif %}>{{ L[t] }}</option>{% endfor %}</select></label>
+  <label>管理 IP<input name="ip" value="{{ d.ip or '' if d else '' }}"></label>
+  <label>環境<input name="environment" value="{{ d.environment if d else '' }}" placeholder="production"></label>
+  <label>廠牌<input name="vendor" value="{{ d.vendor if d else '' }}"></label>
+  <label>型號／OS<input name="model" value="{{ d.model if d else '' }}"></label>
+  <label>負責團隊<input name="owner_team" value="{{ d.owner_team if d else '' }}"></label>
+</div>
+<label>備註<textarea name="notes">{{ d.notes if d else '' }}</textarea></label>

@@ -1,0 +1,11 @@
+<div class="grid">
+  <label>標題 *<input name="title" required value="{{ cr.title if cr else '' }}"></label>
+  <label>變更項目（逗號分隔）<input name="change_items" value="{{ cr.change_items if cr else '' }}" placeholder="VLAN, Firewall Policy"></label>
+  <label>風險
+    <select name="risk">{% for r in risks %}<option value="{{ r }}" {% if (cr and cr.risk == r) or (not cr and r == 'MEDIUM') %}selected{% endif %}>{{ L[r] }}</option>{% endfor %}</select>
+  </label>
+  <label>時段開始<input type="datetime-local" name="window_start" value="{{ cr.window_start|dtinput if cr else '' }}"></label>
+  <label>時段結束<input type="datetime-local" name="window_end" value="{{ cr.window_end|dtinput if cr else '' }}"></label>
+</div>
+<label>變更目的 *<textarea name="purpose" required>{{ cr.purpose if cr else '' }}</textarea></label>
+<label>變更原因<textarea name="reason">{{ cr.reason if cr else '' }}</textarea></label>

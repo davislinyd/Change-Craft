@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>設備</h1>
+<form method="get" action="/devices" class="row" style="margin-bottom: 12px;">
+  <input name="q" value="{{ q }}" placeholder="主機名稱"><button>搜尋</button>
+</form>
+<section>
+  <div class="table-wrap">
+  <table>
+    <tr><th>主機名稱</th><th>類型</th><th>IP</th><th>環境</th><th>廠牌／型號</th><th>負責團隊</th><th>狀態</th></tr>
+    {% for d in devices %}
+    <tr>
+      <td><a href="/devices/{{ d.id }}">{{ d.hostname }}</a></td><td>{{ L[d.device_type] }}</td><td>{{ d.ip or '' }}</td>
+      <td>{{ d.environment }}</td><td>{{ d.vendor }} {{ d.model }}</td><td>{{ d.owner_team }}</td>
+      <td>{{ '' if d.is_active else '停用' }}</td>
+    </tr>
+    {% else %}<tr><td colspan="7" class="muted">沒有資料</td></tr>{% endfor %}
+  </table>
+  </div>
+</section>
+{% if can(user, "device.manage") %}
+<section>
+  <h2>新增設備</h2>
+  <form method="post" action="/devices">
+    {{ csrf_input }}
+    {% with d=None %}{% include "_device_fields.html" %}{% endwith %}
+    <p><button>新增</button></p>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

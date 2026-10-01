@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>變更搜尋</h1>
+<section>
+  <form method="get" action="/changes">
+    <div class="grid">
+      <label>關鍵字（單號/標題/目的/原因/項目）<input name="q" value="{{ params.q }}"></label>
+      <label>設備名稱<input name="hostname" value="{{ params.hostname }}"></label>
+      <label>IP 或網段（例：10.1.0.0/16）<input name="ip" value="{{ params.ip }}"></label>
+      <label>變更項目（含步驟名稱/模組代碼）<input name="item" value="{{ params.item }}"></label>
+      <label>變更目的<input name="purpose" value="{{ params.purpose }}"></label>
+      <label>狀態
+        <select name="status"><option value="">全部</option>
+          {% for s in statuses %}<option value="{{ s }}" {% if s == params.status %}selected{% endif %}>{{ L[s] }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>起日<input type="date" name="date_from" value="{{ params.date_from }}"></label>
+      <label>迄日<input type="date" name="date_to" value="{{ params.date_to }}"></label>
+    </div>
+    <p><button>搜尋</button> <a href="/changes">清除</a></p>
+  </form>
+</section>
+{% if error %}<div class="flash">{{ error }}</div>{% endif %}
+<section>
+  <h2>結果（{{ results|length }}）</h2>
+  {% with rows=results %}{% include "_change_table.html" %}{% endwith %}
+</section>
+{% endblock %}

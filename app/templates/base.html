@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Change Craft{% endblock %}</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/htmx.min.js" defer></script>
+</head>
+<body hx-boost="true">
+<nav>
+  <a class="brand" href="/">Change Craft</a>
+  {% if user %}
+  <a href="/changes">變更</a>
+  <a href="/devices">設備</a>
+  <a href="/modules">步驟模組</a>
+  <a href="/change-templates">變更範本</a>
+  {% if can(user, "module.approve") %}<a href="/reviews">模組審核</a>{% endif %}
+  {% if can(user, "user.manage") %}<a href="/admin/users">使用者</a>{% endif %}
+  {% if can(user, "audit.view") %}<a href="/audit">稽核紀錄</a>{% endif %}
+  <span class="right">
+    <span>{{ user.display_name }}（{% for r in user.roles %}{{ L[r.role] }}{% if not loop.last %}、{% endif %}{% else %}無角色{% endfor %}）</span>
+    <form class="inline" method="post" action="/logout">{{ csrf_input }}<button class="small secondary">登出</button></form>
+  </span>
+  {% endif %}
+</nav>
+<main>
+  {% if flash %}<div class="flash">{{ flash }}</div>{% endif %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

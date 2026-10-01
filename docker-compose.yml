@@ -1,0 +1,27 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: changecraft
+      POSTGRES_USER: changecraft
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?請在 .env 設定 DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "changecraft"]
+      interval: 5s
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://changecraft:${DB_PASSWORD}@db:5432/changecraft
+      SECRET_KEY: ${SECRET_KEY:?請在 .env 設定 SECRET_KEY}
+      CHAT_SECRET: ${CHAT_SECRET:-}
+      BASE_URL: ${BASE_URL:-http://localhost:8000}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+    ports:
+      - "8000:8000"
+volumes:
+  pgdata:

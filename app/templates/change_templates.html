@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>變更範本</h1>
+<p class="muted">範本代表一種變更目的（例如 A），由標準模組依序組成，並定義每個步驟能否省略。</p>
+<section>
+  <table>
+    <tr><th>代碼</th><th>名稱</th><th>步驟</th><th>狀態</th></tr>
+    {% for t in templates %}
+    <tr>
+      <td><a href="/change-templates/{{ t.id }}">{{ t.code }}</a></td><td>{{ t.name }}</td>
+      <td>{% for i in t.items %}{{ i.module.code }}{% if not loop.last %} → {% endif %}{% endfor %}</td>
+      <td>{{ '' if t.is_active else '停用' }}</td>
+    </tr>
+    {% else %}<tr><td colspan="4" class="muted">沒有資料</td></tr>{% endfor %}
+  </table>
+</section>
+{% if can(user, "module.edit") %}
+<section>
+  <h2>新增範本</h2>
+  <form method="post" action="/change-templates" class="row">
+    {{ csrf_input }}
+    <label>代碼 *<input name="code" required placeholder="A"></label>
+    <label>名稱 *<input name="name" required></label>
+    <label>說明<input name="description" size="40"></label>
+    <button>新增</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

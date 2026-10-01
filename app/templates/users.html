@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>使用者與角色</h1>
+<p class="muted">角色可限定設備類型與環境（例：執行者 + 網路設備 + production）。系統管理角色不含變更核准與執行權限。</p>
+{% for u in users %}
+<section>
+  <h2>{{ u.username }} {% if not u.is_active %}<span class="badge">停用</span>{% endif %}</h2>
+  <form method="post" action="/admin/users/{{ u.id }}" class="row">
+    {{ csrf_input }}
+    <label>名稱<input name="display_name" value="{{ u.display_name }}" required></label>
+    <label>聊天帳號 ID（海聊）<input name="chat_user_id" value="{{ u.chat_user_id or '' }}"></label>
+    <label>重設密碼<input name="password" type="password" autocomplete="new-password"></label>
+    <label class="check"><input type="checkbox" name="is_active" value="true" {% if u.is_active %}checked{% endif %}> 啟用</label>
+    <button class="small">儲存</button>
+  </form>
+  <h3>角色</h3>
+  <ul>
+    {% for r in u.roles %}
+    <li>{{ L[r.role] }}
+      <span class="muted">{{ L[r.device_type] if r.device_type else '所有設備' }} / {{ r.environment or '所有環境' }}</span>
+      <form class="inline" method="post" action="/admin/users/{{ u.id }}/roles/{{ r.id }}/delete">{{ csrf_input }}<button class="small danger">移除</button></form>
+    </li>
+    {% endfor %}
+  </ul>
+  <form method="post" action="/admin/users/{{ u.id }}/roles" class="row">
+    {{ csrf_input }}
+    <select name="role">{% for r in roles %}<option value="{{ r }}">{{ L[r] }}</option>{% endfor %}</select>
+    <select name="device_type"><option value="">所有設備</option>{% for t in device_types %}<option value="{{ t }}">{{ L[t] }}</option>{% endfor %}</select>
+    <input name="environment" placeholder="環境（空白=全部）">
+    <button class="small">加入角色</button>
+  </form>
+</section>
+{% endfor %}
+<section>
+  <h2>新增使用者</h2>
+  <form method="post" action="/admin/users" class="row">
+    {{ csrf_input }}
+    <label>帳號<input name="username" required></label>
+    <label>名稱<input name="display_name" required></label>
+    <label>初始密碼（至少 10 字元）<input name="password" type="password" required autocomplete="new-password"></label>
+    <button>新增</button>
+  </form>
+</section>
+{% endblock %}
